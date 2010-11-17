@@ -8,7 +8,7 @@ Add the following line to your ndistro file and rebuild:
 
     module developmentseed contact
 
-**Note:** You _MUST_ have a <code>settings.js</code> file with <code>toAddress:</code> (The address at which contact form emails are received.) defined in <code>module.exports</code>.
+**Note:** You _MUST_ have a `settings.js` file with `toAddress:` (The address at which contact form emails are received.) defined in `module.exports`.
 
 ## Requirements
 

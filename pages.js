@@ -1,15 +1,16 @@
 var app = require('expresslane').app,
-    contact = require('./contact'),
+    contact = require('contact'),
     forms = require('forms'),
     view = require('expresslane').view,
     settings = require('settings'),
+    mail_lib = require('node-email'),
     validators = forms.validators;
 
 var contactForm = forms.Form.create({
+    CSRF: true,
     view: view('content'),
     locals: {
       pageTitle: 'Contact',
-      title: 'Contact',
     },
 
     // Fields to display in form.
@@ -45,19 +46,30 @@ var contactForm = forms.Form.create({
 
 // Validate the form.
 contactForm.on('validate', function(req, res) {
-    // @TODO
+    if (!mail_lib.isValidAddress(this.instance.email)) {
+        this.errors['email'] = "Invalid email address.";
+    }
 });
 
 // Actions to take when validation succeeds.
-contactForm.on('success', function(req, res) {
+contactForm.on('success', function(req, res, track) {
+    var that = this;
     var name = this.instance.name,
         email = this.instance.email,
         message = this.instance.message;
-    contact.send_mail(name, email, message, function(err) {
+    contact.send_mail(name, email, message, track(function(err) {
         if (!err) {
-            res.redirect('/contact');
+            res.render('content', { 
+                locals: { 
+                    content: 'Thank you for your feedback.'
+                }
+            });
         }
-    });
+        else {
+            that.errors['email'] = "Unable to send email.";
+            that.render(req, res);
+        }
+    }));
 });
 
 app.get('/contact', contactForm.load(), function(req, res, next) {

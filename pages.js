@@ -4,6 +4,7 @@ var app = require('expresslane').app,
     view = require('expresslane').view,
     settings = require('settings'),
     mail_lib = require('node-email'),
+    Recaptcha = require('recaptcha').Recaptcha,
     validators = forms.validators;
 
 var contactForm = forms.Form.create({
@@ -11,6 +12,8 @@ var contactForm = forms.Form.create({
     view: view('content'),
     locals: {
       pageTitle: 'Contact',
+      title: 'Contact',
+      suppressTitle: true,
     },
 
     // Fields to display in form.
@@ -39,15 +42,49 @@ var contactForm = forms.Form.create({
     },
 });
 
+if (settings.contact.reCaptcha) {
+    var recaptcha = new Recaptcha(
+        settings.contact.reCaptcha.publicKey,
+        settings.contact.reCaptcha.privateKey
+    );
+    contactForm.prototype.fields['recaptcha'] = forms.fields.html({
+        label: 'ReCaptcha',
+        value: recaptcha.toHTML()
+    });
+
+    contactForm.prototype.visible_fields = ['recaptcha', 'name', 'email', 'message', 'submit'];
+}
+
 // @TODO re-add recaptcha support
 // @TODO fix validators code in fields.js to 
 // return errors keyed on field name and not
 // numeric key.
 
 // Validate the form.
-contactForm.on('validate', function(req, res) {
+contactForm.on('validate', function(req, res, track) {
+    var that = this;
+
     if (!mail_lib.isValidAddress(this.instance.email)) {
         this.errors['email'] = "Invalid email address.";
+    }
+    if (this.fields.recaptcha) {
+
+        var data = {
+            remoteip: req.connection.remoteAddress,
+            challenge: this.instance.recaptcha_challenge_field,
+            response: this.instance.recaptcha_response_field
+        };
+        var recaptcha = new Recaptcha(
+            settings.contact.reCaptcha.publicKey,
+            settings.contact.reCaptcha.privateKey,
+            data
+        );
+
+        recaptcha.verify(track(function(success, error_code) {
+            if (!success) {
+                that.errors['recaptcha'] = 'ReCaptcha is not valid.';
+            }
+        }));
     }
 });
 

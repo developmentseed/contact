@@ -2,8 +2,8 @@ var app = require('expresslane').app,
     contact = require('contact'),
     forms = require('forms'),
     view = require('expresslane').view,
-    settings = require('settings'),
-    mail_lib = require('node-email'),
+    settings = require(process.cwd() + '/settings'),
+    mail_lib = require('email'),
     Recaptcha = require('recaptcha').Recaptcha,
     validators = forms.validators;
 
